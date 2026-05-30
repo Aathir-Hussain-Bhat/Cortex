@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CORTEX — Attention Defense System</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cortexBg: '#130D09',     // Warm dark-chocolate background
+                        cortexDark: '#0C0805',   // Deep outline black
+                        cortexPanel: '#1E140E',  // Warm cocoa card panel
+                        cortexAmber: '#E9A15A',  // Gold/Caramel accent
+                        cortexLightAmber: '#FCD385',
+                        cortexRed: '#FF4D6D',
+                        cortexGreen: '#7CFFB2',
+                        cortexGray: '#2A1F17',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        space: ['Space Grotesk', 'sans-serif'],
+                        sora: ['Sora', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #130D09;
+            color: #EEDCD0;
+            overflow: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .scanlines {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.4) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(233, 161, 90, 0.03),
+                rgba(0, 0, 0, 0.1),
+                rgba(233, 161, 90, 0.03)
+            );
+            background-size: 100% 4px, 6px 100%;
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 10px 10px 0;
+            border-style: solid;
+            border-color: #FFFFFF transparent;
+            display: block;
+            width: 0;
+        }
+
+        .page-container {
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease-in-out;
+        }
+
+        .scroll-lock {
+            touch-action: pan-y;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Attention Beacon Dynamics */
+        @keyframes breatheBeacon {
+            0%, 100% { transform: scale(1) translateY(0); filter: drop-shadow(0 0 10px rgba(233, 161, 90, 0.2)); }
+            50% { transform: scale(1.06) translateY(-5px); filter: drop-shadow(0 0 25px rgba(233, 161, 90, 0.5)); }
+        }
+
+        @keyframes orbitRing {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes flickerEmergency {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.96) translate(1px, -1px); }
+        }
+
+        .beacon-pulse {
+            transform-origin: center center;
+            animation: breatheBeacon 4s infinite ease-in-out;
+        }
+
+        .beacon-orbit {
+            transform-origin: center center;
+            animation: orbitRing 8s infinite linear;
+        }
+
+        .beacon-flicker {
+            transform-origin: center center;
+            animation: flickerEmergency 0.2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="font-sans h-full flex flex-col justify-between antialiased select-none">
+
+    <!-- ================= SYSTEM LOADING PAGE (SPLASH SCREEN) ================= -->
+    <div id="splash-screen" class="fixed inset-0 z-50 bg-[#0C0805] flex flex-col items-center justify-center p-6 space-y-8 select-none">
+        <div class="text-center space-y-3">
+            <div class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-cortexAmber to-cortexLightAmber flex items-center justify-center font-sora font-extrabold text-black text-3xl shadow-[0_0_30px_rgba(233,161,90,0.3)] animate-pulse">
+                C
+            </div>
+            <h1 class="font-sora font-extrabold text-2xl tracking-wider text-white">CORTEX</h1>
+            <p class="text-xs font-mono text-cortexAmber uppercase tracking-widest">Cognitive Defense Firewall</p>
+        </div>
+
+        <div class="w-48 bg-neutral-900 h-1 rounded-full overflow-hidden relative">
+            <div id="splash-progress" class="bg-gradient-to-r from-cortexAmber to-cortexLightAmber h-full w-0 transition-all duration-300 ease-out"></div>
+        </div>
+
+        <div class="text-[10px] font-mono text-neutral-500 uppercase tracking-widest" id="splash-diagnostic-label">
+            Accessing local sector storage...
+        </div>
+    </div>
+
+    <!-- ================= NATIVE INTERFACE TOP BAR ================= -->
+    <header id="app-header" class="hidden bg-cortexDark border-b border-neutral-800/80 px-4 py-3.5 flex items-center justify-between z-40 shrink-0">
+        <div class="flex items-center space-x-3">
+            <button id="header-back-btn" onclick="navigateBack()" class="w-8 h-8 rounded-full bg-cortexPanel border border-neutral-800 flex items-center justify-center text-white transition active:scale-90 hover:bg-cortexGray">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-full border border-cortexAmber/40 overflow-hidden">
+                    <img id="header-user-avatar" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80" alt="Avatar" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <span id="header-user-name" class="font-sora font-bold text-xs text-white block">CORTEX User</span>
+                    <span class="text-[9px] text-cortexAmber font-mono uppercase tracking-wider">SECURED</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-2">
+            <button onclick="navigateTo('stats')" class="px-3.5 py-1.5 bg-cortexPanel text-white text-[11px] font-sora font-semibold rounded-full border border-neutral-800 flex items-center space-x-1 transition hover:bg-cortexGray">
+                <i class="fa-solid fa-chart-simple text-cortexAmber"></i>
+                <span>Stats</span>
+            </button>
+            <button onclick="navigateTo('settings')" class="px-3.5 py-1.5 bg-cortexPanel text-white text-[11px] font-sora font-semibold rounded-full border border-neutral-800 flex items-center space-x-1 transition hover:bg-cortexGray">
+                <i class="fa-solid fa-gear text-cortexAmber"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- ================= MAIN WORKSPACE AREA ================= -->
+    <div class="flex-1 overflow-hidden relative">
+
+        <!-- ================= FIRST TIME USER LOGIN & ONBOARDING ================= -->
+        <section id="screen-login" class="hidden absolute inset-0 bg-[#0C0805] z-30 p-6 flex flex-col justify-between scroll-lock page-container">
+            <div class="space-y-6 pt-4">
+                <div class="text-center space-y-2">
+                    <span class="px-3 py-1 bg-cortexAmber/10 text-cortexAmber font-mono text-[10px] rounded-full uppercase tracking-wider border border-cortexAmber/20">Initial Deployment</span>
+                    <h2 class="font-sora font-extrabold text-2xl text-white">Create Local Sector Profile</h2>
+                    <p class="text-xs text-neutral-400 max-w-xs mx-auto">All inputs are encrypted and stored locally on your device memory.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] text-neutral-400 font-mono uppercase">User Nickname</label>
+                        <input id="login-input-name" type="text" placeholder="e.g. Bhat Boyka" class="w-full bg-cortexPanel border border-neutral-800 focus:border-cortexAmber p-3 rounded-xl text-xs font-mono text-white focus:outline-none transition">
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] text-neutral-400 font-mono uppercase">Secure Local Contact (Email)</label>
+                        <input id="login-input-email" type="email" placeholder="name@domain.local" class="w-full bg-cortexPanel border border-neutral-800 focus:border-cortexAmber p-3 rounded-xl text-xs font-mono text-white focus:outline-none transition">
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] text-neutral-400 font-mono uppercase">Initial Daily Allowance</label>
+                        <div class="flex items-center space-x-3 bg-cortexPanel border border-neutral-800 p-3 rounded-xl">
+                            <input id="login-input-limit" type="number" value="50" min="5" max="500" class="bg-transparent font-mono text-white text-sm focus:outline-none w-16">
+                            <span class="text-xs text-neutral-500 font-mono">REELS / SHORTS</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real system permissions setup block -->
+                <div class="bg-cortexPanel border border-neutral-800 p-4 rounded-2xl space-y-3">
+                    <span class="text-[10px] font-mono text-cortexAmber uppercase tracking-wider block">Grant System Assertions</span>
+                    
+                    <div class="flex items-center justify-between py-1.5 border-b border-neutral-800">
+                        <div class="space-y-0.5">
+                            <span class="text-xs font-sora font-semibold text-white block">System Overlay Blockers</span>
+                            <span class="text-[9px] text-neutral-500 block">Enforces un-bypassable blackout walls</span>
+                        </div>
+                        <input id="permission-overlay" type="checkbox" checked onchange="toggleOverlayCapability(this.checked)" class="w-4 h-4 accent-cortexAmber">
+                    </div>
+
+                    <div class="flex items-center justify-between py-1.5">
+                        <div class="space-y-0.5">
+                            <span class="text-xs font-sora font-semibold text-white block">Push Accountability Warnings</span>
+                            <span class="text-[9px] text-neutral-500 block">Triggers native alerts on threshold limits</span>
+                        </div>
+                        <input id="permission-notifications" type="checkbox" onchange="requestSystemNotification()" class="w-4 h-4 accent-cortexAmber">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="executeOnboarding()" class="w-full py-4 bg-gradient-to-r from-cortexAmber to-cortexLightAmber text-cortexBg font-sora font-extrabold text-sm tracking-wide rounded-full shadow-lg transition active:scale-[0.98]">
+                Deploy System Core
+            </button>
+        </section>
+
+        <!-- ================= APP VIEW 1: YOU (HOME SCREEN) ================= -->
+        <section id="screen-home" class="hidden absolute inset-0 p-5 space-y-6 scroll-lock page-container">
+            
+            <div class="relative flex justify-center">
+                <div id="mascot-speech" class="speech-bubble bg-white text-neutral-900 font-sora font-bold text-xs px-6 py-3.5 rounded-full shadow-2xl max-w-xs text-center transition-all">
+                    Core Energy: Stable & Focused
+                </div>
+            </div>
+
+            <!-- Focus Beacon Mascot - Click to simulate background ingestion -->
+            <div class="flex flex-col items-center justify-center space-y-4">
+                <div onclick="simulateBackgroundIngestion()" class="w-48 h-48 flex items-center justify-center relative cursor-pointer active:scale-95 transition-transform" title="Tap to simulate background scroll detection">
+                    <svg id="mascot-beacon-svg" viewBox="0 0 200 200" class="w-full h-full">
+                        <!-- Orbiting Outer Focus Rings -->
+                        <g class="beacon-orbit">
+                            <ellipse cx="100" cy="100" rx="75" ry="25" fill="none" stroke="rgba(233, 161, 90, 0.2)" stroke-width="1.5" stroke-dasharray="8 6" />
+                            <ellipse cx="100" cy="100" rx="25" ry="75" fill="none" stroke="rgba(233, 161, 90, 0.15)" stroke-width="1.5" stroke-dasharray="4 4" />
+                            <circle cx="28" cy="85" r="4" fill="#E9A15A" />
+                            <circle cx="172" cy="115" r="3" fill="#FCD385" />
+                        </g>
+
+                        <!-- Central Energy Sentinel Beacon Core -->
+                        <g id="beacon-core" class="beacon-pulse">
+                            <polygon points="100,30 145,100 100,170 55,100" fill="rgba(233, 161, 90, 0.08)" />
+                            <polygon id="beacon-prism" points="100,45 135,100 100,155 65,100" fill="url(#prism-gradient)" stroke="#E9A15A" stroke-width="3" stroke-linejoin="round" />
+                            <circle id="beacon-power-core" cx="100" cy="100" r="14" fill="#FCD385" class="transition-all" />
+                            <line x1="100" y1="45" x2="100" y2="155" stroke="rgba(255, 255, 255, 0.25)" stroke-width="2" />
+                            <line x1="65" y1="100" x2="135" y2="100" stroke="rgba(255, 255, 255, 0.15)" stroke-width="1.5" />
+                        </g>
+
+                        <defs>
+                            <linearGradient id="prism-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#E9A15A" stop-opacity="0.8"/>
+                                <stop offset="100%" stop-color="#1E140E" stop-opacity="0.9"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+
+                <!-- Live count dynamic readout -->
+                <div class="text-center">
+                    <span id="reels-scrolled-display" class="text-6xl font-sora font-extrabold text-white tracking-tight">0</span>
+                    <span id="home-allowance-metric" class="block text-xs text-neutral-400 font-semibold uppercase tracking-widest mt-1">Reels Scrolled / 50 limit</span>
+                    <span class="block text-[9px] text-neutral-500 font-mono mt-1 italic">(Tap Beacon to simulate background scroll detection)</span>
+                </div>
+            </div>
+
+            <!-- Ingestion status monitor strip -->
+            <div class="bg-cortexPanel/40 border border-neutral-800/60 p-3 rounded-2xl flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-cortexGreen animate-pulse"></span>
+                    <span class="text-[10px] font-mono text-neutral-400 uppercase tracking-wider">Automated Background Monitor</span>
+                </div>
+                <span id="ingestion-status-badge" class="text-[9px] font-mono bg-cortexGreen/10 text-cortexGreen border border-cortexGreen/25 px-2 py-0.5 rounded-full uppercase">Running</span>
+            </div>
+
+            <!-- Contextual Cognitive Quote Card -->
+            <div class="bg-cortexPanel border border-neutral-800/60 p-4 rounded-2xl shadow-lg">
+                <div class="flex items-start space-x-3">
+                    <i class="fa-solid fa-quote-left text-cortexAmber/40 text-lg mt-1"></i>
+                    <p id="cognitive-quote-text" class="text-xs text-neutral-300 font-sans leading-relaxed italic">
+                        "Your attention is currently aligned with clear conscious intent. Maintain this sanctuary."
+                    </p>
+                </div>
+            </div>
+
+            <button onclick="navigateTo('recovery')" class="w-full py-4 bg-gradient-to-r from-cortexAmber to-cortexLightAmber text-cortexBg font-sora font-extrabold text-sm tracking-wide rounded-full shadow-lg transition active:scale-[0.98]">
+                <i class="fa-solid fa-shield-halved mr-1"></i> Save Me
+            </button>
+
+        </section>
+
+        <!-- ================= APP VIEW 2: STATS SCREEN ================= -->
+        <section id="screen-stats" class="hidden absolute inset-0 p-5 space-y-5 scroll-lock page-container">
+            <h1 class="font-sora font-bold text-lg text-white">Attention Analytics</h1>
+
+            <!-- Dynamic System Hardware Integrity Card (READS REAL SYSTEM SPECIFICATIONS) -->
+            <div class="bg-cortexPanel border border-neutral-800 p-4 rounded-2xl space-y-3">
+                <span class="text-[10px] font-mono text-cortexAmber uppercase tracking-wider block">Local Environment Diagnostic</span>
+                
+                <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+                    <div class="p-3 bg-cortexDark border border-neutral-900 rounded-xl space-y-1">
+                        <span class="text-neutral-500 text-[9px]">SYSTEM BATTERY</span>
+                        <span id="diagnostic-battery" class="text-white block font-bold">Querying...</span>
+                    </div>
+
+                    <div class="p-3 bg-cortexDark border border-neutral-900 rounded-xl space-y-1">
+                        <span class="text-neutral-500 text-[9px]">CONNECTION STATE</span>
+                        <span id="diagnostic-network" class="text-white block font-bold">Querying...</span>
+                    </div>
+
+                    <div class="p-3 bg-cortexDark border border-neutral-900 rounded-xl space-y-1">
+                        <span class="text-neutral-500 text-[9px]">VIEWPORT MATRIX</span>
+                        <span id="diagnostic-screen" class="text-white block font-bold">0 x 0 DPI</span>
+                    </div>
+
+                    <div class="p-3 bg-cortexDark border border-neutral-900 rounded-xl space-y-1">
+                        <span class="text-neutral-500 text-[9px]">TIMEZONE LOCALE</span>
+                        <span id="diagnostic-timezone" class="text-white block font-bold truncate">Timezone</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Weekly Coherence Grid -->
+            <div class="bg-cortexPanel border border-neutral-800 p-5 rounded-3xl space-y-4">
+                <span class="text-xs font-mono text-neutral-400 block uppercase tracking-wider">Weekly Allowance Hotspots</span>
+                
+                <div class="h-32 flex items-end justify-between px-2 border-b border-neutral-850 pb-1">
+                    <div class="flex flex-col items-center space-y-2 w-8">
+                        <div class="w-3 bg-neutral-900 rounded-t-lg h-6"></div>
+                        <span class="text-[10px] text-neutral-500 font-mono">M</span>
+                    </div>
+                    <div class="flex flex-col items-center space-y-2 w-8">
+                        <div class="w-3 bg-neutral-900 rounded-t-lg h-10"></div>
+                        <span class="text-[10px] text-neutral-500 font-mono">T</span>
+                    </div>
+                    <div class="flex flex-col items-center space-y-2 w-8">
+                        <div class="w-3 bg-neutral-900 rounded-t-lg h-4"></div>
+                        <span class="text-[10px] text-neutral-500 font-mono">W</span>
+                    </div>
+                    <div class="flex flex-col items-center space-y-2 w-8">
+                        <div class="w-3 bg-neutral-900 rounded-t-lg h-12"></div>
+                        <span class="text-[10px] text-neutral-500 font-mono">T</span>
+                    </div>
+                    <!-- Friday bar alignment -->
+                    <div class="flex flex-col items-center space-y-2 w-8 relative">
+                        <span id="chart-friday-val" class="absolute -top-7 text-[9px] font-mono font-bold text-cortexAmber bg-cortexPanel border border-cortexAmber/40 px-1 py-0.5 rounded">0</span>
+                        <div id="chart-friday-bar" class="w-3 bg-gradient-to-t from-cortexAmber to-cortexLightAmber rounded-t-lg h-1 transition-all duration-500"></div>
+                        <span class="text-[10px] text-cortexAmber font-mono font-bold">F</span>
+                    </div>
+                    <div class="flex flex-col items-center space-y-2 w-8">
+                        <div class="w-3 bg-neutral-900 rounded-t-lg h-16"></div>
+                        <span class="text-[10px] text-neutral-500 font-mono">S</span>
+                    </div>
+                    <div class="flex flex-col items-center space-y-2 w-8">
+                        <div class="w-3 bg-neutral-900 rounded-t-lg h-14"></div>
+                        <span class="text-[10px] text-neutral-500 font-mono">S</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                    <div class="bg-cortexDark border border-neutral-900 p-3 rounded-xl text-center">
+                        <span class="text-neutral-500 text-[9px] block">TOTAL REELS</span>
+                        <span id="stats-total-reels" class="text-lg text-white font-bold">0</span>
+                    </div>
+                    <div class="bg-cortexDark border border-neutral-900 p-3 rounded-xl text-center">
+                        <span class="text-neutral-500 text-[9px] block">COGNITIVE BIAS</span>
+                        <span id="stats-rot-assessment" class="text-lg text-cortexGreen font-bold truncate">Coherent</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deep Analysis trigger -->
+            <button onclick="navigateTo('analysis')" class="w-full py-4 bg-gradient-to-r from-cortexAmber to-cortexLightAmber text-cortexBg font-sora font-extrabold text-xs tracking-wider rounded-xl flex items-center justify-center space-x-2 shadow-lg">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Execute Daily Deep Analysis</span>
+            </button>
+
+        </section>
+
+        <!-- ================= NEW VIEW: DAILY DEEP ANALYSIS SCREEN ================= -->
+        <section id="screen-analysis" class="hidden absolute inset-0 p-5 space-y-5 scroll-lock page-container">
+            <div class="flex items-center justify-between">
+                <button onclick="navigateBack()" class="w-8 h-8 rounded-full bg-cortexPanel border border-neutral-800 flex items-center justify-center text-white">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                </button>
+                <h1 class="font-sora font-bold text-sm text-white">Daily Coherence Diagnostic</h1>
+                <div class="w-8 h-8"></div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="p-5 bg-cortexPanel border border-neutral-800 rounded-3xl space-y-4">
+                    <div class="text-center space-y-1">
+                        <span class="text-[10px] font-mono text-cortexAmber uppercase tracking-wider">Estimated Attention Span Half-Life</span>
+                        <h2 id="analysis-span-metric" class="text-3xl font-sora font-extrabold text-white">45 Minutes</h2>
+                        <p class="text-[10px] text-neutral-500 font-sans">Calculated based on today's active scrolling intervals.</p>
+                    </div>
+
+                    <div class="h-px bg-neutral-850 w-full"></div>
+
+                    <div class="space-y-3.5 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-neutral-400 font-mono">Focus Coherence Index</span>
+                            <span id="analysis-coherence-val" class="font-bold text-cortexGreen">94% (Stable)</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-neutral-400 font-mono">Dopamine Depletion Baseline</span>
+                            <span id="analysis-dopamine-val" class="font-bold text-cortexGreen">Balanced</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-neutral-400 font-mono">Autonomic Fatigue Rate</span>
+                            <span id="analysis-fatigue-val" class="font-bold text-neutral-300">Low</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Visual Progress Matrix -->
+                <div class="p-5 bg-cortexPanel border border-neutral-800 rounded-3xl space-y-4">
+                    <span class="text-xs font-mono text-neutral-400 block uppercase">Sub-Neurological Telemetry</span>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-[11px] font-mono mb-1.5">
+                                <span class="text-neutral-400">Memory Decay Factor</span>
+                                <span id="progress-memory-label" class="text-white">Optimal</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-cortexDark rounded-full overflow-hidden">
+                                <div id="progress-memory-bar" class="bg-cortexGreen h-full rounded-full transition-all duration-500" style="width: 15%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-[11px] font-mono mb-1.5">
+                                <span class="text-neutral-400">Vulnerability to Late-Night Feeds</span>
+                                <span id="progress-vulnerability-label" class="text-white">Minimal</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-cortexDark rounded-full overflow-hidden">
+                                <div id="progress-vulnerability-bar" class="bg-cortexGreen h-full rounded-full transition-all duration-500" style="width: 20%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-[#21150C] border border-cortexAmber/10 rounded-2xl flex items-start space-x-2.5">
+                    <i class="fa-solid fa-circle-info text-cortexAmber text-xs mt-0.5"></i>
+                    <p id="analysis-summary-text" class="text-[11px] text-neutral-300 font-sans leading-relaxed">
+                        Your attention networks are operating at high stability. Keep current barriers operational to maintain.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= APP VIEW 3: SETTINGS SCREEN ================= -->
+        <section id="screen-settings" class="hidden absolute inset-0 p-5 space-y-5 scroll-lock page-container">
+            <h1 class="font-sora font-bold text-lg text-white">System Settings</h1>
+
+            <!-- User Sector Info Card -->
+            <div class="p-4 bg-cortexPanel border border-neutral-800 rounded-2xl flex items-center space-x-4">
+                <div class="w-14 h-14 rounded-full border-2 border-cortexAmber overflow-hidden shadow-lg">
+                    <img id="settings-avatar" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80" alt="Avatar" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <h3 id="settings-user-name" class="font-sora font-bold text-sm text-white block">Cortex Node</h3>
+                    <span id="settings-user-email" class="text-[10px] text-neutral-400 font-mono block">sector@local-host.cortex</span>
+                </div>
+            </div>
+
+            <!-- Configuration items -->
+            <div class="space-y-2">
+                
+                <div class="p-4 bg-cortexPanel border border-neutral-800 rounded-2xl flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-cortexAmber/10 flex items-center justify-center text-cortexAmber">
+                            <i class="fa-solid fa-bell text-sm"></i>
+                        </div>
+                        <span class="text-white text-xs font-sora font-semibold">Push Alerts Trigger</span>
+                    </div>
+                    <input type="checkbox" id="settings-toggle-notifications" onchange="toggleNotificationService(this.checked)" class="w-4 h-4 accent-cortexAmber">
+                </div>
+
+                <div class="p-4 bg-cortexPanel border border-neutral-800 rounded-2xl flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-cortexAmber/10 flex items-center justify-center text-cortexAmber">
+                            <i class="fa-solid fa-sliders text-sm"></i>
+                        </div>
+                        <span class="text-white text-xs font-sora font-semibold">System Allowance Limit</span>
+                    </div>
+                    <input type="number" id="settings-input-limit" value="50" onchange="changeLimitMetric(this.value)" class="w-12 bg-cortexDark border border-neutral-800 rounded p-1 text-center font-mono text-xs text-white">
+                </div>
+
+                <!-- Explicit Overlay Toggle -->
+                <div class="p-4 bg-cortexPanel border border-neutral-800 rounded-2xl flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-cortexAmber/10 flex items-center justify-center text-cortexAmber">
+                            <i class="fa-solid fa-window-restore text-sm"></i>
+                        </div>
+                        <span class="text-white text-xs font-sora font-semibold">Overlay Other Apps</span>
+                    </div>
+                    <input type="checkbox" id="settings-toggle-overlay" onchange="toggleOverlayCapability(this.checked)" class="w-4 h-4 accent-cortexAmber">
+                </div>
+
+                <div onclick="resetWholeSystem()" class="p-4 bg-cortexPanel border border-neutral-800 rounded-2xl flex items-center justify-between cursor-pointer hover:border-cortexRed transition">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-cortexRed/10 flex items-center justify-center text-cortexRed">
+                            <i class="fa-solid fa-arrow-right-from-bracket text-sm"></i>
+                        </div>
+                        <span class="text-white text-xs font-sora font-semibold">Logout & Wipe Storage</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-neutral-600 text-xs"></i>
+                </div>
+
+            </div>
+
+            <div class="text-center text-[10px] font-mono text-neutral-600">
+                Software Sector: 4.5.193-Production
+            </div>
+        </section>
+
+        <!-- ================= APP VIEW 4: RECOVERY CHAMBER ================= -->
+        <section id="screen-recovery" class="hidden absolute inset-0 p-5 space-y-5 scroll-lock page-container">
+            <h1 class="font-sora font-bold text-lg text-white">Recovery Chamber</h1>
+
+            <div class="bg-cortexPanel border border-neutral-800 rounded-3xl p-8 flex flex-col items-center justify-center min-h-[350px] relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-t from-cortexGreen/5 to-transparent pointer-events-none"></div>
+
+                <div class="flex flex-col items-center justify-center space-y-6 z-10 relative">
+                    <div class="text-center space-y-2">
+                        <span id="recovery-breathe-text" class="text-2xl font-sora font-bold text-cortexGreen tracking-wide uppercase block">BREATHE DEEP</span>
+                        <span id="recovery-instructions-text" class="text-[11px] font-mono text-neutral-400 block uppercase">PREPARING DIAGNOSTICS...</span>
+                    </div>
+
+                    <!-- Pacing circle indicator -->
+                    <div class="relative w-40 h-40 flex items-center justify-center">
+                        <div id="recovery-breathing-pacer" class="w-28 h-28 rounded-full border-2 border-cortexGreen bg-cortexGreen/5 flex items-center justify-center transition-transform duration-1000">
+                            <div class="w-14 h-14 rounded-full bg-cortexGreen/20 flex items-center justify-center">
+                                <i class="fa-solid fa-lungs text-2xl text-cortexGreen"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="toggleRecoveryBreathing(this)" class="px-8 py-2.5 bg-cortexGreen/10 border border-cortexGreen/30 text-cortexGreen hover:bg-cortexGreen/20 transition rounded-full text-xs font-mono font-bold uppercase" id="breathe-play-btn">
+                        Activate Pacer
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-cortexPanel p-4 rounded-2xl border border-neutral-800 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-volume-high text-cortexAmber text-lg"></i>
+                    <div>
+                        <span class="text-xs font-sora font-semibold text-white block">Ambient Neural Hum</span>
+                        <span class="text-[10px] text-neutral-400 block font-mono">110Hz Theta Solfeggio Tone</span>
+                    </div>
+                </div>
+                <button onclick="toggleRecoverySound()" id="sound-toggle-btn" class="px-4 py-1.5 bg-cortexDark border border-neutral-850 hover:border-cortexAmber text-[10px] font-mono rounded-full text-neutral-400 transition">
+                    OFF
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- ================= NATIVE NAVIGATION BAR ================= -->
+    <nav id="app-nav" class="hidden bg-cortexDark border-t border-neutral-800 py-3 px-8 flex items-center justify-around shrink-0 z-45">
+        <button onclick="navigateTo('home')" class="flex flex-col items-center space-y-1 text-neutral-500 hover:text-white transition group" id="nav-home">
+            <i class="fa-solid fa-brain text-lg"></i>
+            <span class="text-[9px] font-sora font-semibold">You</span>
+        </button>
+        <button onclick="navigateTo('stats')" class="flex flex-col items-center space-y-1 text-neutral-500 hover:text-white transition group" id="nav-stats">
+            <i class="fa-solid fa-chart-column text-lg"></i>
+            <span class="text-[9px] font-sora font-semibold">Stats</span>
+        </button>
+        <button onclick="navigateTo('settings')" class="flex flex-col items-center space-y-1 text-neutral-500 hover:text-white transition group" id="nav-settings">
+            <i class="fa-solid fa-gear text-lg"></i>
+            <span class="text-[9px] font-sora font-semibold">Settings</span>
+        </button>
+    </nav>
+
+    <!-- ================= HARD LIMITS BLACKOUT OVERLAY & TYPING COOLDOWN TEST ================= -->
+    <div id="friction-wall" class="hidden fixed inset-0 z-50 bg-[#0C0805] scanlines flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden">
+        <div class="max-w-md space-y-6 z-10 relative">
+            <div class="w-16 h-16 rounded-full bg-cortexRed/10 border-2 border-cortexRed/80 flex items-center justify-center mx-auto animate-pulse">
+                <i class="fa-solid fa-skull text-2xl text-cortexRed"></i>
+            </div>
+
+            <div class="space-y-2">
+                <h1 class="font-sora font-extrabold text-2xl text-white uppercase tracking-wider">BLACKOUT PROTOCOL</h1>
+                <p class="text-xs font-mono text-cortexRed uppercase tracking-widest">Allowance Breach: Feeds Suspended</p>
+                <p class="text-xs text-neutral-400 leading-relaxed max-w-xs mx-auto">
+                    You've passed your daily content threshold limit. Complete the alignment test below to override target lock.
+                </p>
+            </div>
+
+            <!-- Cooldown Progress Bar -->
+            <div class="p-4 bg-cortexPanel rounded-2xl border border-neutral-800 max-w-xs mx-auto space-y-1">
+                <span class="text-[9px] font-mono text-neutral-500 block">DECONGESTION TIMEOUT</span>
+                <span id="friction-cooldown-timer" class="text-3xl font-sora font-bold text-white block">15 <span class="text-sm">s</span></span>
+                <div class="w-full bg-neutral-900 h-1.5 rounded-full overflow-hidden">
+                    <div id="friction-cooldown-progress" class="bg-cortexRed h-full transition-all duration-1000" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <!-- Verification Typing Container -->
+            <div class="bg-cortexPanel p-5 rounded-2xl border border-neutral-800 text-left space-y-3">
+                <span class="text-[10px] font-mono text-cortexAmber uppercase tracking-wider block">Cognitive sovereignty alignment</span>
+                <p id="target-phrase" class="p-3 bg-cortexDark rounded-xl text-xs font-mono text-white border border-neutral-850 italic">I choose conscious control of my focus.</p>
+                <input id="typing-test-input" type="text" autocomplete="off" oninput="checkTypingTest()" placeholder="Begin typing exact phrase to unlock..." class="w-full bg-cortexDark border border-neutral-850 text-xs font-mono p-3 rounded-xl text-white focus:outline-none focus:border-cortexAmber transition-colors">
+                
+                <div class="flex items-center justify-between text-[10px] font-mono text-neutral-500">
+                    <span>Status: <span id="typing-test-status" class="text-cortexRed">Awaiting input</span></span>
+                    <span id="typing-test-match">0% Match</span>
+                </div>
+            </div>
+
+            <!-- Escape paths -->
+            <div class="flex flex-col space-y-2">
+                <button id="friction-action-recovery" disabled onclick="bypassInterventionWithRecovery()" class="w-full py-3 bg-cortexPanel text-neutral-600 border border-neutral-850 rounded-full text-xs font-sora font-bold transition">
+                    <i class="fa-solid fa-lungs mr-1.5"></i> Enter Recovery Chamber
+                </button>
+                <button id="friction-action-dismiss" disabled onclick="dismissFrictionWall()" class="w-full py-3 bg-neutral-900 text-neutral-600 border border-neutral-850 rounded-full text-xs font-sora font-bold transition">
+                    <i class="fa-solid fa-lock-open mr-1.5"></i> Override Blackout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= SCRIPT LOGIC CORE ================= -->
+    <script>
+        const CortexState = {
+            dailyReelsCount: 0,
+            dailyReelsLimit: 50,
+            youtubeCount: 0,
+            tiktokCount: 0,
+            userName: "",
+            userEmail: "",
+            overlayPermission: true,
+            notificationPermission: false,
+
+            // Router tracking stack
+            viewStack: [],
+            
+            // Core breathing engines
+            recoveryActive: false,
+            pacerTicks: 0,
+            recoveryTimer: null,
+            audioCtx: null,
+            soundOscillator1: null,
+            soundOscillator2: null,
+            soundGain: null,
+            audioEnabled: false,
+
+            // Blackout indicators
+            interventionActive: false,
+            cooldownValue: 15,
+            cooldownInterval: null,
+            typingTarget: "I choose conscious control of my focus.",
+        };
+
+        const screensList = ['home', 'stats', 'settings', 'recovery', 'login', 'analysis'];
+
+        // Helper to check if standard Notification interface is defined in current runtime environment
+        function checkNotificationSupport() {
+            return (typeof Notification !== 'undefined');
+        }
+
+        // Helper to read current standard permission state safely
+        function getNotificationPermissionState() {
+            if (!checkNotificationSupport()) return false;
+            return (Notification.permission === "granted");
+        }
+
+        // Initial application boot routines
+        window.addEventListener('load', () => {
+            checkAndApplyDailyReset(); // Check calendar reset on boot
+            initializeDiagnosticSplash();
+            setupRealSystemHardwareAnalysis();
+        });
+
+        // ================= AUTOMATED DAILY RESET SYSTEM =================
+        function checkAndApplyDailyReset() {
+            const todayStr = new Date().toDateString(); 
+            const lastActiveDateStr = localStorage.getItem('cortex_last_active_date');
+
+            if (lastActiveDateStr && lastActiveDateStr !== todayStr) {
+                CortexState.dailyReelsCount = 0;
+                CortexState.youtubeCount = 0;
+                CortexState.tiktokCount = 0;
+                saveHistoricalMetrics();
+            }
+
+            localStorage.setItem('cortex_last_active_date', todayStr);
+        }
+
+        // ================= APPLICATION BOOT & SPLASH =================
+        function initializeDiagnosticSplash() {
+            const splash = document.getElementById('splash-screen');
+            const progress = document.getElementById('splash-progress');
+            const diagnosticLbl = document.getElementById('splash-diagnostic-label');
+
+            const diagnosticSteps = [
+                { percent: 20, label: "Evaluating local storage sectors..." },
+                { percent: 45, label: "Ingesting telemetry databases..." },
+                { percent: 75, label: "Aligning cognitive shield buffers..." },
+                { percent: 100, label: "Decryption sequences complete." }
+            ];
+
+            let stepIdx = 0;
+            const stepInterval = setInterval(() => {
+                if (stepIdx < diagnosticSteps.length) {
+                    const step = diagnosticSteps[stepIdx];
+                    progress.style.width = `${step.percent}%`;
+                    diagnosticLbl.innerText = step.label;
+                    stepIdx++;
+                } else {
+                    clearInterval(stepInterval);
+                    setTimeout(() => {
+                        splash.classList.add('hidden');
+                        validateSecurityCredentials();
+                    }, 500);
+                }
+            }, 350);
+        }
+
+        // ================= ROUTER ROUTINES & BACK NAVIGATION SYSTEM =================
+        function navigateTo(target, clearHistory = false) {
+            if (clearHistory) {
+                CortexState.viewStack = [];
+            }
+            
+            CortexState.viewStack.push(target);
+
+            screensList.forEach(screenName => {
+                const screenEl = document.getElementById(`screen-${screenName}`);
+                const navBtn = document.getElementById(`nav-${screenName}`);
+                
+                if (screenName === target) {
+                    screenEl.classList.remove('hidden');
+                    screenEl.style.transform = "translateX(10px)";
+                    screenEl.style.opacity = "0.7";
+                    setTimeout(() => {
+                        screenEl.style.transform = "translateX(0)";
+                        screenEl.style.opacity = "1";
+                    }, 50);
+
+                    if (navBtn) navBtn.classList.add('text-cortexAmber');
+                } else {
+                    screenEl.classList.add('hidden');
+                    if (navBtn) navBtn.classList.remove('text-cortexAmber');
+                }
+            });
+
+            // Toggle top back button state
+            const backBtn = document.getElementById('header-back-btn');
+            if (CortexState.viewStack.length > 1) {
+                backBtn.classList.remove('opacity-0', 'pointer-events-none');
+            } else {
+                backBtn.classList.add('opacity-0', 'pointer-events-none');
+            }
+
+            if (target === 'analysis') {
+                renderDeepAnalysisDashboard();
+            }
+
+            updateUI();
+        }
+
+        function navigateBack() {
+            if (CortexState.viewStack.length <= 1) return;
+            CortexState.viewStack.pop(); 
+            const previousScreen = CortexState.viewStack[CortexState.viewStack.length - 1];
+            
+            CortexState.viewStack.pop(); 
+            navigateTo(previousScreen);
+        }
+
+        // ================= USER VERIFICATION AND SECURITY =================
+        function validateSecurityCredentials() {
+            const raw = localStorage.getItem('cortex_user_credentials');
+            if (raw) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    CortexState.userName = parsed.name ?? "Cortex Node";
+                    CortexState.userEmail = parsed.email ?? "sector@local-host.cortex";
+                    CortexState.dailyReelsLimit = parsed.limit ?? 50;
+                    CortexState.overlayPermission = parsed.overlay ?? true;
+                    
+                    // Safely assert correct state checks
+                    CortexState.notificationPermission = getNotificationPermissionState() ? true : (parsed.notification ?? false);
+                    
+                    loadHistoricalMetrics();
+                    
+                    document.getElementById('app-header').classList.remove('hidden');
+                    document.getElementById('app-nav').classList.remove('hidden');
+
+                    navigateTo('home', true);
+                } catch (e) {
+                    navigateToOnboarding();
+                }
+            } else {
+                navigateToOnboarding();
+            }
+        }
+
+        function navigateToOnboarding() {
+            document.getElementById('app-header').classList.add('hidden');
+            document.getElementById('app-nav').classList.add('hidden');
+            navigateTo('login', true);
+        }
+
+        function executeOnboarding() {
+            const name = document.getElementById('login-input-name').value.trim();
+            const email = document.getElementById('login-input-email').value.trim();
+            const limit = parseInt(document.getElementById('login-input-limit').value);
+
+            if (!name || !email) {
+                alert("Please declare all diagnostic parameters before deploying system core.");
+                return;
+            }
+
+            CortexState.userName = name;
+            CortexState.userEmail = email;
+            CortexState.dailyReelsLimit = isNaN(limit) ? 50 : limit;
+            CortexState.overlayPermission = document.getElementById('permission-overlay').checked;
+
+            saveUserState();
+
+            document.getElementById('app-header').classList.remove('hidden');
+            document.getElementById('app-nav').classList.remove('hidden');
+
+            navigateTo('home', true);
+        }
+
+        // ================= INTUITIVE HARDWARE ANALYSIS AND VIEWPORT MATRIX =================
+        function setupRealSystemHardwareAnalysis() {
+            const matrixLabel = document.getElementById('diagnostic-screen');
+            if (matrixLabel) {
+                matrixLabel.innerText = `${window.innerWidth} x ${window.innerHeight} DPI`;
+            }
+
+            const tzLabel = document.getElementById('diagnostic-timezone');
+            if (tzLabel) {
+                try {
+                    tzLabel.innerText = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                } catch (e) {
+                    tzLabel.innerText = "UTC Locale";
+                }
+            }
+
+            const netLabel = document.getElementById('diagnostic-network');
+            function updateOnlineIndicator() {
+                if (netLabel) {
+                    netLabel.innerText = navigator.onLine ? "ONLINE (SECURE)" : "OFFLINE DEACTIVATED";
+                    netLabel.className = navigator.onLine ? "text-cortexGreen block font-bold" : "text-cortexRed block font-bold";
+                }
+            }
+            window.addEventListener('online', updateOnlineIndicator);
+            window.addEventListener('offline', updateOnlineIndicator);
+            updateOnlineIndicator();
+
+            const batteryLabel = document.getElementById('diagnostic-battery');
+            if (navigator.getBattery) {
+                navigator.getBattery().then(battery => {
+                    function updateBatteryStatus() {
+                        const levelPercent = Math.round(battery.level * 100);
+                        const stateStr = battery.charging ? "CHARGING" : "DISCHARGING";
+                        if (batteryLabel) {
+                            batteryLabel.innerText = `${levelPercent}% (${stateStr})`;
+                        }
+                    }
+                    updateBatteryStatus();
+                    battery.addEventListener('levelchange', updateBatteryStatus);
+                    battery.addEventListener('chargingchange', updateBatteryStatus);
+                }).catch(() => {
+                    if (batteryLabel) batteryLabel.innerText = "ACCESSIBILITY RESTRICTED";
+                });
+            } else {
+                if (batteryLabel) batteryLabel.innerText = "API NOT SUPPORTED";
+            }
+        }
+
+        // ================= BACKGROUND DETECTION SIMULATOR =================
+        function simulateBackgroundIngestion() {
+            // Randomly assigns background loops representing raw active platform daemon listening
+            const randomSource = Math.random() > 0.5 ? 'youtube' : 'tiktok';
+            ingestScrollMetric(randomSource);
+        }
+
+        // ================= SCROLL INGESTION ENGINE =================
+        function ingestScrollMetric(platform) {
+            if (CortexState.interventionActive) return;
+
+            CortexState.dailyReelsCount++;
+            if (platform === 'youtube') {
+                CortexState.youtubeCount++;
+            } else {
+                CortexState.tiktokCount++;
+            }
+
+            saveHistoricalMetrics();
+            updateUI();
+            checkAllowanceLimits();
+        }
+
+        function checkAllowanceLimits() {
+            if (CortexState.dailyReelsCount >= CortexState.dailyReelsLimit && !CortexState.interventionActive) {
+                triggerFrictionBlackout();
+            }
+        }
+
+        // ================= BLACKOUT OVERLAYS & VERIFICATION TESTS =================
+        function triggerFrictionBlackout() {
+            if (!CortexState.overlayPermission) return;
+            CortexState.interventionActive = true;
+            
+            const wall = document.getElementById('friction-wall');
+            wall.classList.remove('hidden');
+
+            CortexState.cooldownValue = 15;
+            const timerLabel = document.getElementById('friction-cooldown-timer');
+            const progress = document.getElementById('friction-cooldown-progress');
+            const dismissBtn = document.getElementById('friction-action-dismiss');
+            const recoveryBtn = document.getElementById('friction-action-recovery');
+
+            document.getElementById('typing-test-input').value = '';
+            document.getElementById('typing-test-status').innerText = "Awaiting input";
+            document.getElementById('typing-test-status').className = "text-cortexRed";
+            document.getElementById('typing-test-match').innerText = "0% Match";
+
+            dismissBtn.disabled = true;
+            recoveryBtn.disabled = true;
+
+            dismissBtn.className = "w-full py-3 bg-neutral-950 text-neutral-600 border border-neutral-900 rounded-full text-xs font-sora font-bold cursor-not-allowed";
+            recoveryBtn.className = "w-full py-3 bg-neutral-950 text-neutral-600 border border-neutral-900 rounded-full text-xs font-sora font-bold cursor-not-allowed";
+
+            clearInterval(CortexState.cooldownInterval);
+            CortexState.cooldownInterval = setInterval(() => {
+                CortexState.cooldownValue--;
+                timerLabel.innerText = `${Math.max(0, CortexState.cooldownValue)} s`;
+                progress.style.width = `${Math.max(0, CortexState.cooldownValue * 6.66)}%`;
+
+                if (CortexState.cooldownValue <= 0) {
+                    clearInterval(CortexState.cooldownInterval);
+                    recoveryBtn.disabled = false;
+                    recoveryBtn.className = "w-full py-3 bg-cortexGreen/10 text-cortexGreen hover:bg-cortexGreen hover:text-black border border-cortexGreen/30 rounded-full text-xs font-sora font-bold cursor-pointer transition";
+                    
+                    checkTypingTest();
+                }
+            }, 1000);
+        }
+
+        function checkTypingTest() {
+            const inputVal = document.getElementById('typing-test-input').value;
+            const targetPhrase = CortexState.typingTarget;
+            const status = document.getElementById('typing-test-status');
+            const match = document.getElementById('typing-test-match');
+            const dismissBtn = document.getElementById('friction-action-dismiss');
+
+            let matches = 0;
+            const minLength = Math.min(inputVal.length, targetPhrase.length);
+            for (let i = 0; i < minLength; i++) {
+                if (inputVal[i] === targetPhrase[i]) matches++;
+            }
+
+            const percentage = Math.round((matches / targetPhrase.length) * 100);
+            match.innerText = `${percentage}% Match`;
+
+            if (inputVal === targetPhrase) {
+                status.innerText = "Verified Coherent";
+                status.className = "text-cortexGreen font-bold animate-pulse";
+                if (CortexState.cooldownValue <= 0) {
+                    dismissBtn.disabled = false;
+                    dismissBtn.className = "w-full py-3 bg-gradient-to-r from-cortexAmber to-cortexLightAmber text-black rounded-full text-xs font-sora font-bold cursor-pointer transition";
+                }
+            } else {
+                status.innerText = "Awaiting exact match";
+                status.className = "text-cortexRed";
+                dismissBtn.disabled = true;
+                dismissBtn.className = "w-full py-3 bg-neutral-950 text-neutral-600 border border-neutral-900 rounded-full text-xs font-sora font-bold cursor-not-allowed";
+            }
+        }
+
+        function dismissFrictionWall() {
+            document.getElementById('friction-wall').classList.add('hidden');
+            CortexState.interventionActive = false;
+            CortexState.dailyReelsCount = 0; 
+            CortexState.youtubeCount = 0;
+            CortexState.tiktokCount = 0;
+            saveHistoricalMetrics();
+            updateUI();
+            navigateTo('home');
+        }
+
+        function bypassInterventionWithRecovery() {
+            document.getElementById('friction-wall').classList.add('hidden');
+            CortexState.interventionActive = false;
+            navigateTo('recovery');
+            toggleRecoveryBreathing(document.getElementById('breathe-play-btn'));
+        }
+
+        // ================= NEW DEEP ANALYSIS DIAGNOSTIC SCREEN =================
+        function renderDeepAnalysisDashboard() {
+            const spanMetric = document.getElementById('analysis-span-metric');
+            const coherenceVal = document.getElementById('analysis-coherence-val');
+            const dopamineVal = document.getElementById('analysis-dopamine-val');
+            const fatigueVal = document.getElementById('analysis-fatigue-val');
+            const summaryText = document.getElementById('analysis-summary-text');
+
+            const memoryLbl = document.getElementById('progress-memory-label');
+            const memoryBar = document.getElementById('progress-memory-bar');
+            const vulnerabilityLbl = document.getElementById('progress-vulnerability-label');
+            const vulnerabilityBar = document.getElementById('progress-vulnerability-bar');
+
+            const limit = CortexState.dailyReelsLimit;
+            const reels = CortexState.dailyReelsCount;
+
+            if (reels <= (limit * 0.4)) {
+                spanMetric.innerText = "45 Minutes";
+                coherenceVal.innerText = "94% (Stable)";
+                coherenceVal.className = "font-bold text-cortexGreen";
+                dopamineVal.innerText = "Balanced";
+                dopamineVal.className = "font-bold text-cortexGreen";
+                fatigueVal.innerText = "Low";
+                fatigueVal.className = "font-bold text-neutral-300";
+                summaryText.innerText = "Your attention networks are operating at high stability. Keep current barriers operational to maintain.";
+
+                memoryLbl.innerText = "Optimal";
+                memoryBar.style.width = "15%";
+                memoryBar.className = "bg-cortexGreen h-full rounded-full transition-all duration-500";
+                vulnerabilityLbl.innerText = "Minimal";
+                vulnerabilityBar.style.width = "20%";
+                vulnerabilityBar.className = "bg-cortexGreen h-full rounded-full transition-all duration-500";
+            } else if (reels <= limit) {
+                spanMetric.innerText = "12 Minutes";
+                coherenceVal.innerText = "61% (Disrupted)";
+                coherenceVal.className = "font-bold text-cortexAmber";
+                dopamineVal.innerText = "Saturated";
+                dopamineVal.className = "font-bold text-cortexAmber";
+                fatigueVal.innerText = "Moderate";
+                fatigueVal.className = "font-bold text-cortexAmber";
+                summaryText.innerText = "Attention half-life is degrading. Digital noise and fast-paced stimuli are competing with your working memory.";
+
+                memoryLbl.innerText = "Decaying";
+                memoryBar.style.width = "48%";
+                memoryBar.className = "bg-cortexAmber h-full rounded-full transition-all duration-500";
+                vulnerabilityLbl.innerText = "Elevated";
+                vulnerabilityBar.style.width = "65%";
+                vulnerabilityBar.className = "bg-cortexAmber h-full rounded-full transition-all duration-500";
+            } else {
+                spanMetric.innerText = "8 Seconds";
+                coherenceVal.innerText = "18% (Compromised)";
+                coherenceVal.className = "font-bold text-cortexRed animate-pulse";
+                dopamineVal.innerText = "Depleted";
+                dopamineVal.className = "font-bold text-cortexRed";
+                fatigueVal.innerText = "Critical Overload";
+                fatigueVal.className = "font-bold text-cortexRed animate-pulse";
+                summaryText.innerText = "Dopamine receptors are exhausted. Feeds have hijacked control pathways. Initiating full vagal rest protocols is highly recommended.";
+
+                memoryLbl.innerText = "Severe Deficit";
+                memoryBar.style.width = "85%";
+                memoryBar.className = "bg-cortexRed h-full rounded-full transition-all duration-500";
+                vulnerabilityLbl.innerText = "Critical";
+                vulnerabilityBar.style.width = "95%";
+                vulnerabilityBar.className = "bg-cortexRed h-full rounded-full transition-all duration-500";
+            }
+        }
+
+        // ================= VAGAL RECOVERY EXERCISES =================
+        function toggleRecoveryBreathing(btn) {
+            initAudioContext();
+            if (!CortexState.recoveryActive) {
+                CortexState.recoveryActive = true;
+                btn.innerText = "Deactivate";
+                btn.className = "px-8 py-2.5 bg-cortexGreen/20 border border-cortexGreen text-cortexGreen rounded-full text-xs font-mono font-bold uppercase";
+                if (CortexState.audioEnabled) startBinauralSynth();
+                CortexState.pacerTicks = 0;
+                runRecoveryLoop();
+            } else {
+                terminateRecoveryBreathing();
+            }
+        }
+
+        function terminateRecoveryBreathing() {
+            CortexState.recoveryActive = false;
+            const btn = document.getElementById('breathe-play-btn');
+            if (btn) {
+                btn.innerText = "Activate Pacer";
+                btn.className = "px-8 py-2.5 bg-cortexGreen/10 border border-cortexGreen/30 text-cortexGreen hover:bg-cortexGreen/20 transition rounded-full text-xs font-mono font-bold uppercase";
+            }
+            clearInterval(CortexState.recoveryTimer);
+            stopBinauralSynth();
+            document.getElementById('recovery-instructions-text').innerText = 'PREPARING DIAGNOSTICS...';
+            document.getElementById('recovery-breathing-pacer').style.transform = 'scale(1)';
+        }
+
+        function runRecoveryLoop() {
+            const instructions = document.getElementById('recovery-instructions-text');
+            const title = document.getElementById('recovery-breathe-text');
+            const ring = document.getElementById('recovery-breathing-pacer');
+
+            clearInterval(CortexState.recoveryTimer);
+            CortexState.recoveryTimer = setInterval(() => {
+                const phase = CortexState.pacerTicks % 16; 
+                
+                if (phase < 4) {
+                    title.innerText = "Inhale";
+                    title.className = "text-2xl font-sora font-bold text-cortexGreen tracking-wide uppercase block";
+                    instructions.innerText = "Expand diaphragm and chest fully";
+                    if (ring) ring.style.transform = `scale(${1.0 + (phase * 0.12)})`;
+                } else if (phase >= 4 && phase < 8) {
+                    title.innerText = "Hold";
+                    title.className = "text-2xl font-sora font-bold text-cortexAmber tracking-wide uppercase block";
+                    instructions.innerText = "Suspend respiratory pressure gently";
+                } else if (phase >= 8 && phase < 12) {
+                    title.innerText = "Exhale";
+                    title.className = "text-2xl font-sora font-bold text-neutral-400 tracking-wide uppercase block";
+                    instructions.innerText = "Release focus tension with slow outflow";
+                    if (ring) ring.style.transform = `scale(${1.48 - ((phase - 8) * 0.12)})`;
+                } else {
+                    title.innerText = "Hold empty";
+                    title.className = "text-2xl font-sora font-bold text-neutral-600 tracking-wide uppercase block";
+                    instructions.innerText = "Acknowledge physical clarity baseline";
+                }
+                
+                CortexState.pacerTicks++;
+
+                if (CortexState.pacerTicks > 0 && CortexState.pacerTicks % 16 === 0) {
+                    CortexState.dailyReelsCount = Math.max(0, CortexState.dailyReelsCount - 10);
+                    CortexState.youtubeCount = Math.max(0, CortexState.youtubeCount - 7);
+                    CortexState.tiktokCount = Math.max(0, CortexState.tiktokCount - 3);
+                    saveHistoricalMetrics();
+                    updateUI();
+                }
+            }, 1000);
+        }
+
+        // ================= TACTICAL AUDIOSYST SYNTHESIZERS =================
+        function initAudioContext() {
+            if (!CortexState.audioCtx) {
+                CortexState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Toggles local ambient focus drones
+        function toggleRecoverySound() {
+            initAudioContext();
+            const btn = document.getElementById('sound-toggle-btn');
+            if (!CortexState.audioEnabled) {
+                CortexState.audioEnabled = true;
+                btn.innerText = "ON";
+                btn.className = "px-4 py-1.5 bg-cortexAmber text-black text-[10px] font-mono rounded-full transition";
+                if (CortexState.recoveryActive) startBinauralSynth();
+            } else {
+                CortexState.audioEnabled = false;
+                btn.innerText = "OFF";
+                btn.className = "px-4 py-1.5 bg-cortexDark border border-neutral-850 text-[10px] font-mono rounded-full text-neutral-400 transition";
+                stopBinauralSynth();
+            }
+        }
+
+        function startBinauralSynth() {
+            if (!CortexState.audioCtx) return;
+            try {
+                if (CortexState.audioCtx.state === 'suspended') CortexState.audioCtx.resume();
+                CortexState.soundGain = CortexState.audioCtx.createGain();
+                CortexState.soundGain.gain.setValueAtTime(0.04, CortexState.audioCtx.currentTime);
+
+                CortexState.soundOscillator1 = CortexState.audioCtx.createOscillator();
+                CortexState.soundOscillator1.type = 'sine';
+                CortexState.soundOscillator1.frequency.setValueAtTime(110, CortexState.audioCtx.currentTime);
+
+                CortexState.soundOscillator2 = CortexState.audioCtx.createOscillator();
+                CortexState.soundOscillator2.type = 'sine';
+                CortexState.soundOscillator2.frequency.setValueAtTime(114, CortexState.audioCtx.currentTime);
+
+                const filter = CortexState.audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(150, CortexState.audioCtx.currentTime);
+
+                CortexState.soundOscillator1.connect(filter);
+                CortexState.soundOscillator2.connect(filter);
+                filter.connect(CortexState.soundGain);
+                CortexState.soundGain.connect(CortexState.audioCtx.destination);
+
+                CortexState.soundOscillator1.start();
+                CortexState.soundOscillator2.start();
+            } catch (err) {
+                console.warn("Audio Context init blocked.");
+            }
+        }
+
+        function stopBinauralSynth() {
+            try {
+                if (CortexState.soundOscillator1) CortexState.soundOscillator1.stop();
+                if (CortexState.soundOscillator2) CortexState.soundOscillator2.stop();
+            } catch (err) {}
+        }
+
+        // ================= PERMISSION UTILITY ASSERTS =================
+        function requestSystemNotification() {
+            if (!checkNotificationSupport()) {
+                CortexState.notificationPermission = true;
+                saveUserState();
+                updateUI();
+                return;
+            }
+
+            if (Notification.permission !== "granted") {
+                Notification.requestPermission().then(permission => {
+                    CortexState.notificationPermission = (permission === "granted");
+                    saveUserState();
+                    updateUI(); 
+                });
+            } else {
+                CortexState.notificationPermission = true;
+                saveUserState();
+                updateUI();
+            }
+        }
+
+        function toggleNotificationService(enabled) {
+            if (enabled) {
+                requestSystemNotification();
+            } else {
+                CortexState.notificationPermission = false;
+                saveUserState();
+                updateUI();
+            }
+        }
+
+        function toggleOverlayCapability(enabled) {
+            CortexState.overlayPermission = enabled;
+            const toggle = document.getElementById('settings-toggle-overlay');
+            if (toggle) toggle.checked = enabled;
+            saveUserState();
+        }
+
+        function changeLimitMetric(val) {
+            const parsed = parseInt(val);
+            if (!isNaN(parsed) && parsed >= 5) {
+                CortexState.dailyReelsLimit = parsed;
+                saveUserState();
+                updateUI();
+            }
+        }
+
+        // ================= DYNAMIC MASCOT ROT & QUOTE RENDERING ENGINE =================
+        function updateMascotState() {
+            const speech = document.getElementById('mascot-speech');
+            const prism = document.getElementById('beacon-prism');
+            const powerCore = document.getElementById('beacon-power-core');
+            const beaconGroup = document.getElementById('beacon-core');
+            const quoteText = document.getElementById('cognitive-quote-text');
+
+            const limit = CortexState.dailyReelsLimit;
+            const score = CortexState.dailyReelsCount;
+
+            // Retain notification permission checkbox explicitly on state updates safely
+            const notificationToggle = document.getElementById('settings-toggle-notifications');
+            if (notificationToggle) {
+                notificationToggle.checked = getNotificationPermissionState() ? true : CortexState.notificationPermission;
+            }
+
+            if (score <= (limit * 0.4)) {
+                speech.innerText = "Attention Core: Safe & Protected";
+                prism.setAttribute('stroke', '#E9A15A');
+                powerCore.setAttribute('fill', '#7CFFB2'); // Peaceful green core glow
+                
+                beaconGroup.className.baseVal = "beacon-pulse";
+                quoteText.innerText = '"Your attention is currently aligned with clear conscious intent. Maintain this sanctuary."';
+            } else if (score <= limit) {
+                speech.innerText = "Cognitive paths experiencing drift.";
+                prism.setAttribute('stroke', '#FFC857');
+                powerCore.setAttribute('fill', '#FFC857'); // Disrupted gold/amber
+                
+                beaconGroup.className.baseVal = "beacon-pulse";
+                quoteText.innerText = '"Minor cognitive drift detected. Digital noise is competing with critical processing fields."';
+            } else {
+                speech.innerText = "Core compromised. Emergency reset advised.";
+                prism.setAttribute('stroke', '#FF4D6D');
+                powerCore.setAttribute('fill', '#FF4D6D'); // Critical overloaded red
+                
+                beaconGroup.className.baseVal = "beacon-flicker";
+                quoteText.innerText = '"Dopamine-fried receptors. Your working memory is severely compromised. Restore control immediately."';
+            }
+        }
+
+        // ================= DATABASE SYNC AND STORAGE PERSISTENCE =================
+        function updateUI() {
+            // General metrics
+            document.getElementById('reels-scrolled-display').innerText = CortexState.dailyReelsCount;
+            document.getElementById('home-allowance-metric').innerText = `Reels Scrolled / ${CortexState.dailyReelsLimit} limit`;
+            document.getElementById('youtube-count-label').innerText = CortexState.youtubeCount;
+            document.getElementById('tiktok-count-label').innerText = CortexState.tiktokCount;
+
+            // Stats view parameters
+            document.getElementById('stats-total-reels').innerText = CortexState.dailyReelsCount;
+            document.getElementById('chart-friday-val').innerText = CortexState.dailyReelsCount;
+            
+            const limit = CortexState.dailyReelsLimit;
+            const barHeight = Math.min(100, (CortexState.dailyReelsCount / limit) * 112);
+            document.getElementById('chart-friday-bar').style.height = `${Math.max(4, barHeight)}px`;
+
+            const diagnosticLbl = document.getElementById('stats-rot-assessment');
+            if (diagnosticLbl) {
+                if (CortexState.dailyReelsCount >= limit) {
+                    diagnosticLbl.innerText = "Decommissioned";
+                    diagnosticLbl.className = "text-lg text-cortexRed font-bold truncate";
+                } else if (CortexState.dailyReelsCount > (limit * 0.5)) {
+                    diagnosticLbl.innerText = "Dopamine Leak";
+                    diagnosticLbl.className = "text-lg text-cortexAmber font-bold truncate";
+                } else {
+                    diagnosticLbl.innerText = "Coherent";
+                    diagnosticLbl.className = "text-lg text-cortexGreen font-bold truncate";
+                }
+            }
+
+            // Sync Settings details
+            document.getElementById('settings-user-name').innerText = CortexState.userName.toUpperCase();
+            document.getElementById('settings-user-email').innerText = CortexState.userEmail;
+            document.getElementById('header-user-name').innerText = CortexState.userName;
+            document.getElementById('settings-input-limit').value = CortexState.dailyReelsLimit;
+            document.getElementById('settings-toggle-overlay').checked = CortexState.overlayPermission;
+
+            // Retain absolute correct notification sync
+            CortexState.notificationPermission = getNotificationPermissionState() ? true : CortexState.notificationPermission;
+            document.getElementById('settings-toggle-notifications').checked = CortexState.notificationPermission;
+
+            updateMascotState();
+        }
+
+        function saveUserState() {
+            localStorage.setItem('cortex_user_credentials', JSON.stringify({
+                name: CortexState.userName,
+                email: CortexState.userEmail,
+                limit: CortexState.dailyReelsLimit,
+                overlay: CortexState.overlayPermission,
+                notification: CortexState.notificationPermission
+            }));
+        }
+
+        function saveHistoricalMetrics() {
+            localStorage.setItem('cortex_history_v4', JSON.stringify({
+                reels: CortexState.dailyReelsCount,
+                youtube: CortexState.youtubeCount,
+                tiktok: CortexState.tiktokCount
+            }));
+        }
+
+        function loadHistoricalMetrics() {
+            const raw = localStorage.getItem('cortex_history_v4');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                CortexState.dailyReelsCount = parsed.reels ?? 0;
+                CortexState.youtubeCount = parsed.youtube ?? 0;
+                CortexState.tiktokCount = parsed.tiktok ?? 0;
+            }
+        }
+
+        function resetWholeSystem() {
+            if (confirm("Execute full sector scrub? All logs and profile credentials will be deleted.")) {
+                localStorage.clear();
+                CortexState.dailyReelsCount = 0;
+                CortexState.youtubeCount = 0;
+                CortexState.tiktokCount = 0;
+                validateSecurityCredentials();
+            }
+        }
+    </script>
+</body>
+          </html>
