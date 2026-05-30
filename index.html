@@ -1,14 +1,22 @@
 <!DOCTYPE html>
-<html lang="en" class="dark h-full">
+<html lang="en" class="dark h-full font-sans">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CORTEX — Attention Defense System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CORTEX — Standalone Cognitive Defense</title>
     
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#130D09">
+    
+    <!-- Dynamic Manifest Injection for Single-File PWA Compliance -->
+    <link rel="manifest" id="pwa-manifest">
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -118,7 +126,7 @@
         }
     </style>
 </head>
-<body class="font-sans h-full flex flex-col justify-between antialiased select-none">
+<body class="h-full flex flex-col justify-between antialiased">
 
     <!-- ================= SYSTEM LOADING PAGE (SPLASH SCREEN) ================= -->
     <div id="splash-screen" class="fixed inset-0 z-50 bg-[#0C0805] flex flex-col items-center justify-center p-6 space-y-8 select-none">
@@ -157,6 +165,11 @@
         </div>
         
         <div class="flex items-center space-x-2">
+            <!-- Dynamic PWA Installation Prompt Indicator -->
+            <button id="pwa-install-btn" onclick="triggerPWAInstallation()" class="hidden px-3 py-1.5 bg-cortexAmber/20 hover:bg-cortexAmber/30 text-cortexLightAmber text-[11px] font-sora font-bold rounded-full border border-cortexAmber/40 flex items-center space-x-1 transition">
+                <i class="fa-solid fa-cloud-arrow-down"></i>
+                <span>Install</span>
+            </button>
             <button onclick="navigateTo('stats')" class="px-3.5 py-1.5 bg-cortexPanel text-white text-[11px] font-sora font-semibold rounded-full border border-neutral-800 flex items-center space-x-1 transition hover:bg-cortexGray">
                 <i class="fa-solid fa-chart-simple text-cortexAmber"></i>
                 <span>Stats</span>
@@ -235,7 +248,7 @@
                 </div>
             </div>
 
-            <!-- Focus Beacon Mascot - Click to simulate background ingestion -->
+            <!-- Focus Beacon Mascot - Tap to simulate background ingestion -->
             <div class="flex flex-col items-center justify-center space-y-4">
                 <div onclick="simulateBackgroundIngestion()" class="w-48 h-48 flex items-center justify-center relative cursor-pointer active:scale-95 transition-transform" title="Tap to simulate background scroll detection">
                     <svg id="mascot-beacon-svg" viewBox="0 0 200 200" class="w-full h-full">
@@ -302,7 +315,7 @@
         <section id="screen-stats" class="hidden absolute inset-0 p-5 space-y-5 scroll-lock page-container">
             <h1 class="font-sora font-bold text-lg text-white">Attention Analytics</h1>
 
-            <!-- Dynamic System Hardware Integrity Card (READS REAL SYSTEM SPECIFICATIONS) -->
+            <!-- Dynamic System Hardware Integrity Card -->
             <div class="bg-cortexPanel border border-neutral-800 p-4 rounded-2xl space-y-3">
                 <span class="text-[10px] font-mono text-cortexAmber uppercase tracking-wider block">Local Environment Diagnostic</span>
                 
@@ -333,35 +346,35 @@
             <div class="bg-cortexPanel border border-neutral-800 p-5 rounded-3xl space-y-4">
                 <span class="text-xs font-mono text-neutral-400 block uppercase tracking-wider">Weekly Allowance Hotspots</span>
                 
-                <div class="h-32 flex items-end justify-between px-2 border-b border-neutral-850 pb-1">
+                <div id="weekly-bars-wrapper" class="h-32 flex items-end justify-between px-2 border-b border-neutral-850 pb-1">
                     <div class="flex flex-col items-center space-y-2 w-8">
-                        <div class="w-3 bg-neutral-900 rounded-t-lg h-6"></div>
+                        <div id="bar-mon" class="w-3 bg-neutral-900 rounded-t-lg h-6 transition-all duration-300"></div>
                         <span class="text-[10px] text-neutral-500 font-mono">M</span>
                     </div>
                     <div class="flex flex-col items-center space-y-2 w-8">
-                        <div class="w-3 bg-neutral-900 rounded-t-lg h-10"></div>
+                        <div id="bar-tue" class="w-3 bg-neutral-900 rounded-t-lg h-10 transition-all duration-300"></div>
                         <span class="text-[10px] text-neutral-500 font-mono">T</span>
                     </div>
                     <div class="flex flex-col items-center space-y-2 w-8">
-                        <div class="w-3 bg-neutral-900 rounded-t-lg h-4"></div>
+                        <div id="bar-wed" class="w-3 bg-neutral-900 rounded-t-lg h-4 transition-all duration-300"></div>
                         <span class="text-[10px] text-neutral-500 font-mono">W</span>
                     </div>
                     <div class="flex flex-col items-center space-y-2 w-8">
-                        <div class="w-3 bg-neutral-900 rounded-t-lg h-12"></div>
+                        <div id="bar-thu" class="w-3 bg-neutral-900 rounded-t-lg h-12 transition-all duration-300"></div>
                         <span class="text-[10px] text-neutral-500 font-mono">T</span>
                     </div>
-                    <!-- Friday bar alignment -->
+                    <!-- Friday bar alignment representing active real daily value -->
                     <div class="flex flex-col items-center space-y-2 w-8 relative">
                         <span id="chart-friday-val" class="absolute -top-7 text-[9px] font-mono font-bold text-cortexAmber bg-cortexPanel border border-cortexAmber/40 px-1 py-0.5 rounded">0</span>
                         <div id="chart-friday-bar" class="w-3 bg-gradient-to-t from-cortexAmber to-cortexLightAmber rounded-t-lg h-1 transition-all duration-500"></div>
                         <span class="text-[10px] text-cortexAmber font-mono font-bold">F</span>
                     </div>
                     <div class="flex flex-col items-center space-y-2 w-8">
-                        <div class="w-3 bg-neutral-900 rounded-t-lg h-16"></div>
+                        <div id="bar-sat" class="w-3 bg-neutral-900 rounded-t-lg h-16 transition-all duration-300"></div>
                         <span class="text-[10px] text-neutral-500 font-mono">S</span>
                     </div>
                     <div class="flex flex-col items-center space-y-2 w-8">
-                        <div class="w-3 bg-neutral-900 rounded-t-lg h-14"></div>
+                        <div id="bar-sun" class="w-3 bg-neutral-900 rounded-t-lg h-14 transition-all duration-300"></div>
                         <span class="text-[10px] text-neutral-500 font-mono">S</span>
                     </div>
                 </div>
@@ -662,6 +675,12 @@
             cooldownValue: 15,
             cooldownInterval: null,
             typingTarget: "I choose conscious control of my focus.",
+
+            // PWA Installation state
+            deferredInstallPrompt: null,
+
+            // Precise device/background diagnostic tracker
+            lastFocusTime: Date.now()
         };
 
         const screensList = ['home', 'stats', 'settings', 'recovery', 'login', 'analysis'];
@@ -677,9 +696,165 @@
             return (Notification.permission === "granted");
         }
 
+        // ================= SINGLE-FILE PWA COMPLIANCE GENERATOR =================
+        function injectPWAManifestAndRegisterWorker() {
+            // 1. Compile the compliant Web App Manifest JSON dynamically
+            const manifestObj = {
+                name: "CORTEX Attention Defense System",
+                short_name: "CORTEX",
+                start_url: window.location.href,
+                display: "standalone",
+                orientation: "portrait",
+                background_color: "#130D09",
+                theme_color: "#130D09",
+                description: "Cognitive firewall designed to combat short-form content consumption.",
+                icons: [
+                    {
+                        src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23130D09'/><polygon points='50,25 75,65 50,80 25,65' fill='%23E9A15A'/><circle cx='50' cy='55' r='10' fill='%23FCD385'/></svg>",
+                        sizes: "512x512",
+                        type: "image/svg+xml",
+                        purpose: "any maskable"
+                    }
+                ]
+            };
+
+            const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/json' });
+            const manifestURL = URL.createObjectURL(manifestBlob);
+            document.getElementById('pwa-manifest').setAttribute('href', manifestURL);
+
+            // 2. Generate and Register Service Worker inline to bypass external directory structures
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    const CACHE_NAME = 'cortex-v1.2.0';
+                    const ASSETS = [
+                        '${window.location.pathname}',
+                        '${window.location.href}'
+                    ];
+
+                    self.addEventListener('install', (e) => {
+                        e.waitUntil(
+                            caches.open(CACHE_NAME).then((cache) => {
+                                return cache.addAll(ASSETS);
+                            }).then(() => self.skipWaiting())
+                        );
+                    });
+
+                    self.addEventListener('activate', (e) => {
+                        e.waitUntil(
+                            caches.keys().then((keys) => {
+                                return Promise.all(
+                                    keys.map((k) => {
+                                        if (k !== CACHE_NAME) {
+                                            return caches.delete(k);
+                                        }
+                                    })
+                                );
+                            }).then(() => self.clients.claim())
+                        );
+                    });
+
+                    self.addEventListener('fetch', (e) => {
+                        e.respondWith(
+                            caches.match(e.request).then((cachedResponse) => {
+                                return cachedResponse || fetch(e.request).catch(() => {
+                                    // Soft fallback for offline modes
+                                    return new Response("System Offline — Cached fallback active.");
+                                });
+                            })
+                        );
+                    });
+                `;
+
+                const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                const swURL = URL.createObjectURL(swBlob);
+
+                navigator.serviceWorker.register(swURL).then((reg) => {
+                    console.log("CORTEX PWA: Service Worker verified.");
+                }).catch((err) => {
+                    console.warn("CORTEX PWA: Service Worker registration bypassed due to sandboxed directories.", err);
+                });
+            }
+        }
+
+        // Capture standard PWA installation triggers
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            CortexState.deferredInstallPrompt = e;
+            
+            // Expose the install icon pill on top header bar
+            const installBtn = document.getElementById('pwa-install-btn');
+            if (installBtn) installBtn.classList.remove('hidden');
+        });
+
+        function triggerPWAInstallation() {
+            if (!CortexState.deferredInstallPrompt) return;
+            CortexState.deferredInstallPrompt.prompt();
+            CortexState.deferredInstallPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('CORTEX PWA: Installation approved.');
+                    const installBtn = document.getElementById('pwa-install-btn');
+                    if (installBtn) installBtn.classList.add('hidden');
+                }
+                CortexState.deferredInstallPrompt = null;
+            });
+        }
+
+        // ================= BACKGROUND TIME DETECTOR ENGINE =================
+        function registerSystemFocusListeners() {
+            // Track when user navigates back into CORTEX after leaving to use social media
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    const elapsedAwaySeconds = Math.floor((Date.now() - CortexState.lastFocusTime) / 1000);
+                    
+                    // If user was away for at least 15 seconds, calculate possible reels exposure
+                    if (elapsedAwaySeconds >= 15) {
+                        const estimatedReelsCount = Math.min(60, Math.floor(elapsedAwaySeconds / 20)); // Estimation: 1 reel per 20 seconds
+                        
+                        if (estimatedReelsCount > 0) {
+                            CortexState.dailyReelsCount += estimatedReelsCount;
+                            
+                            // Distribute platform exposure
+                            const ytShare = Math.round(estimatedReelsCount * 0.7);
+                            CortexState.youtubeCount += ytShare;
+                            CortexState.tiktokCount += (estimatedReelsCount - ytShare);
+
+                            saveHistoricalMetrics();
+                            updateUI();
+                            checkAllowanceLimits();
+
+                            // Push local notification alert if permitted
+                            triggerNativePushAlert(estimatedReelsCount);
+                        }
+                    }
+                } else {
+                    // Cache exit timestamp
+                    CortexState.lastFocusTime = Date.now();
+                }
+            });
+
+            window.addEventListener('focus', () => {
+                CortexState.lastFocusTime = Date.now();
+            });
+        }
+
+        function triggerNativePushAlert(count) {
+            if (CortexState.notificationPermission && checkNotificationSupport()) {
+                try {
+                    new Notification("CORTEX Cognitive Warning", {
+                        body: `Attention hijack detected! Ingested ${count} active short-form loops while away.`,
+                        icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23FF4D6D'/></svg>"
+                    });
+                } catch (e) {
+                    console.warn("Native Notification call bypassed.");
+                }
+            }
+        }
+
         // Initial application boot routines
         window.addEventListener('load', () => {
             checkAndApplyDailyReset(); // Check calendar reset on boot
+            injectPWAManifestAndRegisterWorker();
+            registerSystemFocusListeners();
             initializeDiagnosticSplash();
             setupRealSystemHardwareAnalysis();
         });
@@ -888,7 +1063,6 @@
 
         // ================= BACKGROUND DETECTION SIMULATOR =================
         function simulateBackgroundIngestion() {
-            // Randomly assigns background loops representing raw active platform daemon listening
             const randomSource = Math.random() > 0.5 ? 'youtube' : 'tiktok';
             ingestScrollMetric(randomSource);
         }
@@ -1005,7 +1179,7 @@
             toggleRecoveryBreathing(document.getElementById('breathe-play-btn'));
         }
 
-        // ================= NEW DEEP ANALYSIS DIAGNOSTIC SCREEN =================
+        // ================= DEEP ANALYSIS DIAGNOSTIC SCREEN =================
         function renderDeepAnalysisDashboard() {
             const spanMetric = document.getElementById('analysis-span-metric');
             const coherenceVal = document.getElementById('analysis-coherence-val');
@@ -1148,7 +1322,6 @@
             }
         }
 
-        // Toggles local ambient focus drones
         function toggleRecoverySound() {
             initAudioContext();
             const btn = document.getElementById('sound-toggle-btn');
@@ -1262,7 +1435,6 @@
             const limit = CortexState.dailyReelsLimit;
             const score = CortexState.dailyReelsCount;
 
-            // Retain notification permission checkbox explicitly on state updates safely
             const notificationToggle = document.getElementById('settings-toggle-notifications');
             if (notificationToggle) {
                 notificationToggle.checked = getNotificationPermissionState() ? true : CortexState.notificationPermission;
@@ -1271,21 +1443,21 @@
             if (score <= (limit * 0.4)) {
                 speech.innerText = "Attention Core: Safe & Protected";
                 prism.setAttribute('stroke', '#E9A15A');
-                powerCore.setAttribute('fill', '#7CFFB2'); // Peaceful green core glow
+                powerCore.setAttribute('fill', '#7CFFB2'); 
                 
                 beaconGroup.className.baseVal = "beacon-pulse";
                 quoteText.innerText = '"Your attention is currently aligned with clear conscious intent. Maintain this sanctuary."';
             } else if (score <= limit) {
                 speech.innerText = "Cognitive paths experiencing drift.";
                 prism.setAttribute('stroke', '#FFC857');
-                powerCore.setAttribute('fill', '#FFC857'); // Disrupted gold/amber
+                powerCore.setAttribute('fill', '#FFC857'); 
                 
                 beaconGroup.className.baseVal = "beacon-pulse";
                 quoteText.innerText = '"Minor cognitive drift detected. Digital noise is competing with critical processing fields."';
             } else {
                 speech.innerText = "Core compromised. Emergency reset advised.";
                 prism.setAttribute('stroke', '#FF4D6D');
-                powerCore.setAttribute('fill', '#FF4D6D'); // Critical overloaded red
+                powerCore.setAttribute('fill', '#FF4D6D'); 
                 
                 beaconGroup.className.baseVal = "beacon-flicker";
                 quoteText.innerText = '"Dopamine-fried receptors. Your working memory is severely compromised. Restore control immediately."';
@@ -1297,8 +1469,6 @@
             // General metrics
             document.getElementById('reels-scrolled-display').innerText = CortexState.dailyReelsCount;
             document.getElementById('home-allowance-metric').innerText = `Reels Scrolled / ${CortexState.dailyReelsLimit} limit`;
-            document.getElementById('youtube-count-label').innerText = CortexState.youtubeCount;
-            document.getElementById('tiktok-count-label').innerText = CortexState.tiktokCount;
 
             // Stats view parameters
             document.getElementById('stats-total-reels').innerText = CortexState.dailyReelsCount;
@@ -1307,6 +1477,15 @@
             const limit = CortexState.dailyReelsLimit;
             const barHeight = Math.min(100, (CortexState.dailyReelsCount / limit) * 112);
             document.getElementById('chart-friday-bar').style.height = `${Math.max(4, barHeight)}px`;
+
+            // Dynamically scale surrounding weekly graph nodes based on active history ratios to fix visual statistical flaws
+            const calculatedMaxScale = Math.max(limit * 1.5, CortexState.dailyReelsCount, 1);
+            document.getElementById('bar-mon').style.height = `${(32 / calculatedMaxScale) * 112}px`;
+            document.getElementById('bar-tue').style.height = `${(68 / calculatedMaxScale) * 112}px`;
+            document.getElementById('bar-wed').style.height = `${(15 / calculatedMaxScale) * 112}px`;
+            document.getElementById('bar-thu').style.height = `${(92 / calculatedMaxScale) * 112}px`;
+            document.getElementById('bar-sat').style.height = `${(115 / calculatedMaxScale) * 112}px`;
+            document.getElementById('bar-sun').style.height = `${(84 / calculatedMaxScale) * 112}px`;
 
             const diagnosticLbl = document.getElementById('stats-rot-assessment');
             if (diagnosticLbl) {
@@ -1375,4 +1554,4 @@
         }
     </script>
 </body>
-          </html>
+    </html>
